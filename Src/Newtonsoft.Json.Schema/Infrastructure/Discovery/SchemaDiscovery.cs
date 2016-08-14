@@ -222,7 +222,7 @@ namespace Newtonsoft.Json.Schema.Infrastructure.Discovery
 
                 // default Uri comparison ignores fragments
                 // use firstordefault to handle duplicates
-                KnownSchema knownSchema = discovery.KnownSchemas.FirstOrDefault(s => s.Id.OriginalString.TrimEnd('#') == resolvedReference.OriginalString.TrimEnd('#'));
+                KnownSchema knownSchema = discovery.KnownSchemas.FirstOrDefault(s => string.Equals(s.Id.OriginalString.TrimEnd('#'), resolvedReference.OriginalString.TrimEnd('#'), StringComparison.OrdinalIgnoreCase));
 
                 if (knownSchema != null)
                 {
@@ -239,7 +239,7 @@ namespace Newtonsoft.Json.Schema.Infrastructure.Discovery
 
                         // default Uri comparison ignores fragments
                         // there could be duplicated ids. use FirstOrDefault to get first schema with an id
-                        knownSchema = discovery.KnownSchemas.FirstOrDefault(s => s.Id.OriginalString.TrimEnd('#') == path.OriginalString);
+                        knownSchema = discovery.KnownSchemas.FirstOrDefault(s => string.Equals(s.Id.OriginalString.TrimEnd('#'), path.OriginalString, StringComparison.OrdinalIgnoreCase));
 
                         if (knownSchema != null)
                         {

@@ -38,6 +38,37 @@ namespace Newtonsoft.Json.Schema.Tests.Infrastructure
         }
 
         [Test]
+        public void sdfsdf()
+        {
+            string schemaJson = @"{
+  ""$schema"": ""http://json-schema.org/draft-04/schema#"",
+  ""id"": ""http://DTCP05IFCENT01.qa.local:8080/identity-management/v1/authenticated.json"",
+  ""definitions"": {
+    ""event"": {
+    }
+  },
+  ""type"": ""object"",
+  ""properties"": {
+    ""event"": {
+      ""$ref"": ""#/definitions/event""
+    }
+  },
+  ""required"": [
+    ""event""
+  ]
+}";
+
+            Uri i1 = new Uri("http://DTCP05IFCENT01.qa.local:8080/identity-management/v1/authenticated.json");
+            Uri i2 = new Uri("http://dtcp05ifcent01.qa.local:8080/identity-management/v1/authenticated.json");
+            Uri i3 = new Uri("http://dtcp05ifcent01.qa.local:8080/identity-management/v1/AUTHENTICATED.json");
+
+            Console.WriteLine(i1 == i2);
+            Console.WriteLine(i1 == i3);
+
+            JSchema.Parse(schemaJson);
+        }
+
+        [Test]
         public void ReadEscapedReference()
         {
             JSchema schema = JSchema.Parse(@"{

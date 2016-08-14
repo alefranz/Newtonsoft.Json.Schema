@@ -4,6 +4,7 @@
 #endregion
 
 using System;
+using System.IO;
 using System.Reflection;
 using System.Linq;
 #if !PORTABLE || NETSTANDARD1_3
@@ -21,9 +22,17 @@ namespace Newtonsoft.Json.Schema.Infrastructure.Licensing
         {
             bool valid;
 
-#if (NETSTANDARD1_3)
-            RSACryptoServiceProvider rsaCryptoServiceProvider = new RSACryptoServiceProvider();
-            rsaCryptoServiceProvider.ImportCspBlob(Convert.FromBase64String(PublicKeyCsp));
+            //RSA rsa = RSA.Create();
+            //rsa.FromXmlString(PublicKey);
+            //rsa.
+
+#if true || (NETSTANDARD1_3)
+            RSA rsa = RSA.Create();
+            rsa.FromXmlString(PublicKey);
+            valid = rsa.VerifyData(data, signature, HashAlgorithmName.SHA1, RSASignaturePadding.Pkcs1);
+
+            //RSACryptoServiceProvider rsaCryptoServiceProvider = new RSACryptoServiceProvider();
+            //rsaCryptoServiceProvider.ImportCspBlob(Convert.FromBase64String(PublicKeyCsp));
 
             valid = rsaCryptoServiceProvider.VerifyData(data, SHA1.Create(), signature);
 #elif (PORTABLE && !NETSTANDARD1_3)
@@ -71,6 +80,50 @@ namespace Newtonsoft.Json.Schema.Infrastructure.Licensing
 #endif
 
             return valid;
+        }
+
+        internal static RSAParameters ToRSAParameters(this byte[] cspBlob, bool includePrivateParameters)
+        {
+            try
+            {
+                BinaryReader br = new BinaryReader(new MemoryStream(cspBlob));
+
+                byte bType = br.ReadByte();    // BLOBHEADER.bType: Expected to be 0x6 (PUBLICKEYBLOB) or 0x7 (PRIVATEKEYBLOB), though there's no check for backward compat reasons. 
+                byte bVersion = br.ReadByte(); // BLOBHEADER.bVersion: Expected to be 0x2, though there's no check for backward compat reasons.
+                br.ReadUInt16();               // BLOBHEADER.wReserved
+                int algId = br.ReadInt32();    // BLOBHEADER.aiKeyAlg
+                if (algId != CALG_RSA_KEYX)
+                    throw new PlatformNotSupportedException();  // The FCall this code was ported from supports other algid's but we're only porting what we use.
+
+                int magic = br.ReadInt32();    // RSAPubKey.magic: Expected to be 0x31415352 ('RSA1') or 0x32415352 ('RSA2') 
+                int bitLen = br.ReadInt32();   // RSAPubKey.bitLen
+
+                int modulusLength = bitLen / 8;
+                int halfModulusLength = (modulusLength + 1) / 2;
+
+                uint expAsDword = br.ReadUInt32();
+
+                RSAParameters rsaParameters = new RSAParameters();
+                rsaParameters.Exponent = ExponentAsBytes(expAsDword);
+                rsaParameters.Modulus = br.ReadReversed(modulusLength);
+                if (includePrivateParameters)
+                {
+                    rsaParameters.P = br.ReadReversed(halfModulusLength);
+                    rsaParameters.Q = br.ReadReversed(halfModulusLength);
+                    rsaParameters.DP = br.ReadReversed(halfModulusLength);
+                    rsaParameters.DQ = br.ReadReversed(halfModulusLength);
+                    rsaParameters.InverseQ = br.ReadReversed(halfModulusLength);
+                    rsaParameters.D = br.ReadReversed(modulusLength);
+                }
+
+                return rsaParameters;
+            }
+            catch (EndOfStreamException)
+            {
+                // For compat reasons, we throw an E_FAIL CrytoException if CAPI returns a smaller blob than expected.
+                // For compat reasons, we ignore the extra bits if the CAPI returns a larger blob than expected.
+                throw E_FAIL.ToCryptographicException();
+            }
         }
     }
 }
