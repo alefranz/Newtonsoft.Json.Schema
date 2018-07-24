@@ -1792,6 +1792,51 @@ namespace Newtonsoft.Json.Schema.Tests
             Assert.IsNotNull(schema.Properties["Provider"]);
         }
 
+        [Test]
+        public void GenerateSingleDefinition()
+        {
+            JSchemaGenerator generator = new JSchemaGenerator
+            {
+                DefaultRequired = Required.DisallowNull
+            };
+            JSchema schema = generator.Generate(typeof(RootTestClass));
+
+            List<JProperty> t = schema.ExtensionData["definitions"].Cast<JProperty>().ToList();
+
+            //Assert.AreEqual("A", t[index++].Name);
+            //Assert.AreEqual("B", t[index++].Name);
+            //Assert.AreEqual("Item", t[index].Name);
+
+            string json = schema.ToString();
+
+            Console.WriteLine(json);
+        }
+
+        internal class RootTestClass
+        {
+            public MultipleRerencesTestClass Value { get; set; }
+
+            public class MultipleRerencesTestClass
+            {
+                public virtual AnObjectTestClass Prop1 { get; set; }
+
+                public virtual AnObjectTestClass Prop2 { get; set; }
+
+                public class AnObjectTestClass : ABaseTestClass
+                {
+                    public AnObjectTestClass()
+                    {
+                        Field = "hello!";
+                    }
+                }
+
+                public class ABaseTestClass
+                {
+                    public virtual string Field { get; set; }
+                }
+            }
+        }
+
         internal class MyRootJsonClass
         {
             public Dictionary<string, BlockBase> Blocks { get; set; }
